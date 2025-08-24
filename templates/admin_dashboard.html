@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div style="padding:1rem; max-width:1200px; margin:0 auto;">
+
+  <!-- Header -->
+  <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; margin-bottom:2rem;">
+    <h2 style="margin:0; color:#0d6efd;">Admin/User Dashboard - Create Notices</h2>
+    <a href="{{ url_for('auth.logout') }}"
+       style="padding:.5rem 1rem; background:#6c757d; color:#fff; text-decoration:none; border-radius:6px; font-weight:600;">
+       Logout
+    </a>
+  </div>
+
+  <!-- Create Notice -->
+  <section style="background:#fff; padding:1.5rem; border-radius:10px; box-shadow:0 4px 15px rgba(0,0,0,0.05); margin-bottom:2rem;">
+    <h3 style="margin-bottom:1rem; color:#0d6efd;">Create New Notice</h3>
+    <form method="post" action="{{ url_for('admin.create') }}" enctype="multipart/form-data"
+          style="display:flex; flex-direction:column; gap:1rem;">
+      <label>
+        Title
+        <input type="text" name="title" required style="padding:.5rem; border-radius:6px; border:1px solid #ced4da;">
+      </label>
+      <label>
+        Body
+        <textarea name="body" rows="4" placeholder="Optional details..."
+                  style="padding:.5rem; border-radius:6px; border:1px solid #ced4da;"></textarea>
+      </label>
+      <label>
+        Image (optional)
+        <input type="file" name="image" accept="image/*">
+      </label>
+      <label style="display:flex; align-items:center; gap:.5rem;">
+        <input type="checkbox" name="is_published" checked> Published
+      </label>
+      <button type="submit" style="padding:.6rem; background:#0d6efd; color:#fff; border:none; border-radius:6px; font-weight:600;">
+        Create
+      </button>
+    </form>
+  </section>
+
+  <!-- Edit Notice -->
+  {% if edit_item %}
+  <section style="background:#fff; padding:1.5rem; border-radius:10px; box-shadow:0 4px 15px rgba(0,0,0,0.05); margin-bottom:2rem;">
+    <h3 style="margin-bottom:1rem; color:#0d6efd;">Edit Notice #{{ edit_item["id"] }}</h3>
+    <form method="post" action="{{ url_for('admin.update', item_id=edit_item['id']) }}" enctype="multipart/form-data"
+          style="display:flex; flex-direction:column; gap:1rem;">
+      <label>
+        Title
+        <input type="text" name="title" value="{{ edit_item['title'] }}" required
+               style="padding:.5rem; border-radius:6px; border:1px solid #ced4da;">
+      </label>
+      <label>
+        Body
+        <textarea name="body" rows="4"
+                  style="padding:.5rem; border-radius:6px; border:1px solid #ced4da;">{{ edit_item['body'] or '' }}</textarea>
+      </label>
+      {% if edit_item["image_filename"] %}
+        <p style="color:#6c757d;">Current image: {{ edit_item["image_filename"] }}</p>
+        <input type="hidden" name="current_image" value="{{ edit_item['image_filename'] }}">
+      {% endif %}
+      <label>
+        Replace image
+        <input type="file" name="image" accept="image/*">
+      </label>
+      <label style="display:flex; align-items:center; gap:.5rem;">
+        <input type="checkbox" name="is_published" {% if edit_item["is_published"] %}checked{% endif %}> Published
+      </label>
+      <div style="display:flex; gap:1rem;">
+        <button type="submit" style="flex:1; padding:.6rem; background:#0d6efd; color:#fff; border:none; border-radius:6px; font-weight:600;">Save Changes</button>
+        <a href="{{ url_for('admin.dashboard') }}" style="flex:1; text-align:center; padding:.6rem; background:#6c757d; color:#fff; border-radius:6px; text-decoration:none;">Cancel Edit</a>
+      </div>
+    </form>
+  </section>
+  {% endif %}
+
+  <!-- All Notices -->
+  <section>
+    <h3 style="margin-bottom:1rem; color:#0d6efd;">All Notices</h3>
+    {% if items %}
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:1rem;">
+        {% for it in items %}
+          <div style="background:#fff; border-radius:10px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.05); display:flex; flex-direction:column;">
+            {% if it["image_filename"] %}
+              <img src="{{ url_for('uploaded_file', filename=it['image_filename']) }}" alt="{{ it['title'] }}"
+                   style="width:100%; height:200px; object-fit:cover;">
+            {% endif %}
+            <div style="padding:1rem; display:flex; flex-direction:column; flex:1;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.5rem;">
+                <strong>{{ it["title"] }}</strong>
+                {% if not it["is_published"] %}<span style="background:#ffc107; color:#000; padding:.2rem .5rem; border-radius:4px; font-size:.75rem;">Hidden</span>{% endif %}
+              </div>
+              <!-- Body with line breaks -->
+              <p style="white-space: pre-line; font-size:.95rem; line-height:1.4; margin-bottom:1rem;">{{ it["body"] or "" }}</p>
+              <span style="font-size:.85rem; color:#6c757d;">
+                Created by {{ it.creator_name or 'Unknown' }} on {{ it.created_at.replace('T',' ')[:16] }}
+              </span>
+
+              {% if session.admin_role == 'master' %}
+              <form method="post" action="{{ url_for('admin.delete', item_id=it['id']) }}"
+                    style="display:flex; gap:0.5rem; margin-top:0.75rem;">
+                <a href="{{ url_for('admin.dashboard', edit=it['id']) }}"
+                   style="flex:1; text-align:center; padding:.4rem; background:#6c757d; color:#fff; border-radius:6px; text-decoration:none;">Edit</a>
+                <button type="submit" onclick="return confirm('Delete this item?')"
+                        style="flex:1; padding:.4rem; background:#dc3545; color:#fff; border:none; border-radius:6px; font-weight:600; cursor:pointer;">Delete</button>
+              </form>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p style="color:#6c757d;">Nothing yet.</p>
+    {% endif %}
+  </section>
+
+</div>
+{% endblock %}
